@@ -1,5 +1,5 @@
 Package: metacell.flow
-Title: What the Package Does (One Line, Title Case)
+Title: Inferring and annotating metacell flows
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Amos",
@@ -11,3 +11,5 @@ License: MIT
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
+Imports: 
+    metacell (>= 0.3.6)

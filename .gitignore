@@ -1,2 +1,7 @@
 README.html
 docs
+.Rhistory
+.RData
+.Rproj.user
+scrna_db
+config
