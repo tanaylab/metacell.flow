@@ -27,6 +27,9 @@ Imports:
     tidyr,
     zoo
 Remotes:
+    bioc::graph,
+    bioc::lpsymphony,
+    tanaylab/metacell,
     tanaylab/tgconfig,
     tanaylab/tgstat,
     tanaylab/tgutil
