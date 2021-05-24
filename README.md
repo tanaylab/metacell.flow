@@ -1,47 +1,18 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # metacell.flow
-
-<!-- badges: start -->
-
-<!-- badges: end -->
-
-The goal of metacell.flow is to infer differentiation flow models from
-single cell RNA-seq data and metacell models representing it, with time
-tags per cell. Potential techniques for inferring or sampling time tags
-will be under invesigation. This package is still in research mode.
-
-## Installation
-
-You can install the released version of metacell.flow from github with:
-
-``` r
-remotes::install_github("tanaylab/metacell.flow")
-```
-
-## Example
-=======
-metacell.flow
-=============
 
 <!-- badges: start -->
 <!-- badges: end -->
 The goal of metacell.flow is to infer differentiation flow models from single cell RNA-seq data and metacell models representing it, with time tags per cell. Potential techniques for inferring or sampling time tags will be under invesigation. This package is still in research mode.
 
-Installation
-------------
+## Installation
 
-TBD
+You can install the released version of metacell.flow from github with:
 
-``` r
-print("safta")
-```
+\`\`\` r remotes::install\_github("tanaylab/metacell.flow")
 
-Example
--------
-
-This is a basic example which shows you how to solve a common problem:
+## Example
 
 ``` r
 library("metacell")
@@ -139,4 +110,3 @@ mcf = mctnetflow_comp_propagation(mcf)
 #adding back the object with the network and flows
 scdb_add_mctnetflow(flow_id, mcf)
 ```
-
