@@ -6,10 +6,30 @@ Authors@R:
            family = "Tanay",
            role = c("aut", "cre"),
            email = "amos.tanay@weizmann.ac.il")
-Description: Supporting inference of differentiation flow over metacell manifolds (and innovation of additional scRNA buzzwords)
+Description: Supporting inference of differentiation flow over metacell
+    manifolds (and innovation of additional scRNA buzzwords)
 License: MIT
+Imports: 
+    cluster,
+    dbscan,
+    dplyr,
+    ggplot2,
+    graph,
+    igraph,
+    lpsymphony,
+    Matrix,
+    metacell (>= 0.3.6),
+    parallel,
+    pdist,
+    tgconfig,
+    tgstat,
+    tgutil,
+    tidyr,
+    zoo
+Remotes:
+    tanaylab/tgconfig,
+    tanaylab/tgstat,
+    tanaylab/tgutil
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
-Imports: 
-    metacell (>= 0.3.6)
