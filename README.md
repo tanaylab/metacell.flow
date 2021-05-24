@@ -1,26 +1,14 @@
----
-output: github_document
----
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
-)
-```
-
-# metacell.flow
+metacell.flow
+=============
 
 <!-- badges: start -->
 <!-- badges: end -->
-
 The goal of metacell.flow is to infer differentiation flow models from single cell RNA-seq data and metacell models representing it, with time tags per cell. Potential techniques for inferring or sampling time tags will be under invesigation. This package is still in research mode.
 
-## Installation
+Installation
+------------
 
 TBD
 
@@ -28,11 +16,12 @@ TBD
 print("safta")
 ```
 
-## Example
+Example
+-------
 
 This is a basic example which shows you how to solve a common problem:
 
-```{r example, eval=FALSE}
+``` r
 library("metacell")
 library("metacell.flow")
 scdb_init("scrna_db/", force_reinit=T)
@@ -71,9 +60,9 @@ example_leak_table_sing_emb = function(mc_id, leak_emb_endo, leak_exe_endo)
 }
 
 mc_leak = example_leak_table_sing_emb(
-			mc_id = "sing_emb_wt10_recolored",
-			leak_emb_endo = 0.12,
-			leak_exe_endo = 0.17)
+            mc_id = "sing_emb_wt10_recolored",
+            leak_emb_endo = 0.12,
+            leak_exe_endo = 0.17)
 
 write.table(as.data.frame(mc_leak), sep="\t", quote=F, file="scrna_db/leak.sing_emb_wt10_recolored.txt")
 
@@ -92,17 +81,17 @@ names(cell_time) = rownames(md)
 leak_fn = "scrna_db/leak.sing_emb_wt10_recolored.txt"
 
 mcell_mctnet_from_mgraph(net_id, 
-								mgraph_id,
-								cell_time,
-								leak_fn,
-            				t_exp = 1,
-								T_cost = 1e+5,
-								capacity_var_factor = NULL,
-								off_capacity_cost1 = 1,
-								off_capacity_cost2 = 1000,
-								k_norm_ext_cost = 1,
-								k_ext_norm_cost = 1,
-								k_ext_ext_cost = 1)
+                                mgraph_id,
+                                cell_time,
+                                leak_fn,
+                            t_exp = 1,
+                                T_cost = 1e+5,
+                                capacity_var_factor = NULL,
+                                off_capacity_cost1 = 1,
+                                off_capacity_cost2 = 1000,
+                                k_norm_ext_cost = 1,
+                                k_ext_norm_cost = 1,
+                                k_ext_ext_cost = 1)
 
 ##now generate the flow itself
 
@@ -116,7 +105,7 @@ network_color_ord = NULL
 message("generate flows")
 
 mcell_new_mctnetflow(flow_id, net_id, 
-							init_mincost = T, flow_tolerance=0.01)
+                            init_mincost = T, flow_tolerance=0.01)
 
 message("solved network flow problem")
 
@@ -127,21 +116,25 @@ mcf = mctnetflow_comp_propagation(mcf)
   
 #adding back the object with the network and flows
 scdb_add_mctnetflow(flow_id, mcf)
-
 ```
 
 What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
 
-```{r cars}
+``` r
 summary(cars)
+#>      speed           dist       
+#>  Min.   : 4.0   Min.   :  2.00  
+#>  1st Qu.:12.0   1st Qu.: 26.00  
+#>  Median :15.0   Median : 36.00  
+#>  Mean   :15.4   Mean   : 42.98  
+#>  3rd Qu.:19.0   3rd Qu.: 56.00  
+#>  Max.   :25.0   Max.   :120.00
 ```
 
 You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date.
 
 You can also embed plots, for example:
 
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
+<img src="man/figures/README-pressure-1.png" width="100%" />
 
 In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!

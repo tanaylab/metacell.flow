@@ -30,7 +30,7 @@ scdb_flow_init = function()
 #'
 scdb_mctnetwork = function(id) 
 {
-	return(.scdb_get_obj(id, "mctnetwork"))
+	return(metacell:::.scdb_get_obj(id, "mctnetwork"))
 }
 
 #' scdb_add_mctnetwork - add mctnetwork to the DB and cahce
@@ -45,7 +45,7 @@ scdb_add_mctnetwork = function(id, mctnetwork)
 	if(class(mctnetwork)[1] != "tgMCTNetwork") {
 		stop("Cannot add non tgMCTNetwork object as a mctnetwork in scdb")
 	}
-	.scdb_add_obj(id, "mctnetwork", mctnetwork);
+	metacell:::.scdb_add_obj(id, "mctnetwork", mctnetwork);
 }
 
 #' scdb_del_mctnetwork - del mctnetwork from the DB and cahce
@@ -55,7 +55,7 @@ scdb_add_mctnetwork = function(id, mctnetwork)
 #' @export
 scdb_del_mctnetwork = function(id)
 {
-	.scdb_del_obj(id, "mctnetwork");
+	metacell:::.scdb_del_obj(id, "mctnetwork");
 }
 
 #' scdb_mctnetflow - get a mctnetflow object
@@ -66,7 +66,7 @@ scdb_del_mctnetwork = function(id)
 #'
 scdb_mctnetflow = function(id) 
 {
-	return(.scdb_get_obj(id, "mctnetflow"))
+	return(metacell:::.scdb_get_obj(id, "mctnetflow"))
 }
 
 #' scdb_add_mctnetflow - add mctnetflow to the DB and cahce
@@ -81,7 +81,7 @@ scdb_add_mctnetflow = function(id, mctnetflow)
 	if(class(mctnetflow)[1] != "tgMCTNetFlow") {
 		stop("Cannot add non tgMCTNetwork object as a mctnetflow in scdb")
 	}
-	.scdb_add_obj(id, "mctnetflow", mctnetflow);
+	metacell:::.scdb_add_obj(id, "mctnetflow", mctnetflow);
 }
 
 #' scdb_del_mctnetflow - del mctnetflow from the DB and cahce
@@ -91,5 +91,5 @@ scdb_add_mctnetflow = function(id, mctnetflow)
 #' @export
 scdb_del_mctnetflow = function(id)
 {
-	.scdb_del_obj(id, "mctnetflow");
+	metacell:::.scdb_del_obj(id, "mctnetflow");
 }
