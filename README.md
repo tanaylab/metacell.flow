@@ -10,7 +10,9 @@ The goal of metacell.flow is to infer differentiation flow models from single ce
 
 You can install the released version of metacell.flow from github with:
 
-\`\`\` r remotes::install\_github("tanaylab/metacell.flow")
+``` r
+remotes::install_github("tanaylab/metacell.flow")
+```
 
 ## Example
 

@@ -26,6 +26,7 @@ You can install the released version of metacell.flow from github with:
 
 ``` r
 remotes::install_github("tanaylab/metacell.flow")
+```
 
 ## Example
 
