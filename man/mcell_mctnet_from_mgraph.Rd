@@ -10,7 +10,7 @@ mcell_mctnet_from_mgraph(
   cell_time,
   leak_fn,
   t_exp = 1,
-  T_cost = 1e+05,
+  T_cost = 100000,
   capacity_var_factor = NULL,
   off_capacity_cost1 = 1,
   off_capacity_cost2 = 1000,
