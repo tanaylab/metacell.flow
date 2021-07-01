@@ -64,11 +64,12 @@ setMethod(
 #' @export
 mcell_new_mctnetflow= function(flow_id, net_id, 
 							init_mincost = F, flow_tolerance=0.01,
+							max_flow_tolerance = 0.05,
 							flows=NULL)
 {
 	mcf = tgMCTNetFlow(net_id, flows = flows)
 	if(is.null(flows) & init_mincost) {
-		mcf = mctnetflow_gen_mincost(mcf, flow_tolerance)
+		mcf = mctnetflow_gen_mincost(mcf, flow_tolerance,max_flow_tolerance)
 	}
 	scdb_add_mctnetflow(flow_id, mcf)
 }
@@ -81,11 +82,14 @@ mcell_new_mctnetflow= function(flow_id, net_id,
 #'
 #' @return an updated flow object
 #' @export
-mctnetflow_gen_mincost = function(mcf, flow_tolerance=0.01)
+mctnetflow_gen_mincost = function(mcf, flow_tolerance=0.01,max_flow_tolerance = 0.05)
 {
-	mctnet = scdb_mctnetwork(mcf@net_id)
+	if (max_flow_tolerance < flow_tolerance | max_flow_tolerance >= 1) {
+	  stop("max_flow_tolerance must be larger than flow_tolerance (and smaller than 1)")
+	}
+  mctnet = scdb_mctnetwork(mcf@net_id)
 	net = mctnet@network
-	ncnstr = mctnetwork_lp_constraints(mctnet, 1-flow_tolerance, 100)
+	ncnstr = mctnetwork_lp_constraints(mctnet, 1-flow_tolerance, 100,1 - max_flow_tolerance)
 
 	edge_costs = net$cost[order(net$ID)]
 	sol = lpsymphony::lpsymphony_solve_LP(obj = edge_costs,
