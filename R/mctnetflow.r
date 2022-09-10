@@ -156,15 +156,11 @@ mctnetflow_comp_propagation= function(mcf)
 mctnetflow_get_flow_mat = function(mcf, mctnet, time)
 {
 	net = mctnet@network
-	if(time == -2) {
-		f_t = net$type1 != "growth" & net$type2!="growth" & net$type2 != "sink"
+	if(time == -1) {
+		f_t = net$type1 == "norm_f" & net$type2 == "norm_b"
 	} else {
-		if(time == -1) {
-			f_t = net$type1 != "growth" & net$type2!="growth" & net$type1 != "source" & net$type2 != "sink"
-		} else {
-			f_t = net$time1 == time & net$time2==time+1 &
-					net$type1 != "growth" & net$type2!="growth"
-		}
+		f_t = net$time1 == time & net$time2==time+1
+
 	}
 
 	net$flow  = mcf@edge_flows
