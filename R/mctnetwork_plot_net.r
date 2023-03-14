@@ -60,6 +60,25 @@ mctnetwork_mc_rank_from_color_ord = function(mct_id, flow_id, colors_ordered = N
   return(mc_rank1)
 }
 
+write_flow = function(file_name,mct_id, flow_id, mcnames, flow_thresh = 1e-4){
+    mct = scdb_mctnetwork(mct_id)
+    mcf = scdb_mctnetflow(flow_id)
+    net = mct@network
+    net$flow = mcf@edge_flows
+    mc = scdb_mc(mct@mc_id)
+    f = net$flow > flow_thresh
+    nn = net[f,]
+    named_nn = nn
+    named_nn$mc1[named_nn$type1=="src"] = "src"
+    named_nn$mc2[named_nn$type2=="sink"] = "sink"
+    f_not_source = named_nn$mc1!="src"
+    named_nn$mc1[f_not_source] = mcnames[named_nn$mc1[f_not_source]]
+    f_not_sink = named_nn$mc2!="sink"
+    named_nn$mc2[f_not_sink] = mcnames[named_nn$mc2[f_not_sink]]
+    
+    data.table::fwrite(named_nn[,c("mc1", "mc2", "time1", "time2", "type1", "type2", "flow")], file_name)
+}
+
 mctnetwork_plot_net = function(mct_id,flow_id, fn, 
 						mc_ord = NULL, colors_ordered = NULL,
 						propogate=NULL,
@@ -499,7 +518,7 @@ mm_mctnetwork_plot_net = function(mct_id, flow_id, fn,
       prop_flow[f] = propogate[[t]][m1[f]+max_m*(m2[f]-1)]
     }
     
-    prop_flow[prop_flow/edge_w_scale < 1] = 0
+    prop_flow[prop_flow/edge_w_scale < 0.1] = 0
     
     segments(x1,y1,x2,y2, 
              col=ifelse(nn$type2=="growth", "black", mc@colors[nn$mc1]), 
