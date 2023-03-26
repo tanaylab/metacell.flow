@@ -320,7 +320,7 @@ mctnetflow_gen_e_gmt_p = function(mcf_id, mat_id,  genes)
 
 mctnetflow_get_type_flows = function(mcf, time, max_time)
 {
-	mctnet = scdb_mctnetwork(mcf@mct_id)
+	mctnet = scdb_mctnetwork(mcf@net_id)
 	net = mctnet@network
 	if(is.null(mcf@edge_flows)) {
 		stop("trying to query uninitialized flows")
@@ -331,8 +331,7 @@ mctnetflow_get_type_flows = function(mcf, time, max_time)
 	all_types = unique(mc@colors)
 	mct_mats = list()
 	for(t in time:(max_time-1)) {
-		f_t = net$time1 == t & net$time2 == t+1 &
-					net$type1 != "growth" & net$type2!="growth"
+		f_t = net$time1 == t & net$time2 == t+1 
 
 		net_t = net[f_t,] 
 		net_t$mc_t1 = mc@colors[as.numeric(net_t$mc1)]
