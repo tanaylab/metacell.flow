@@ -1,95 +1,92 @@
-#' Initializing scdb_flow
+#' Add mc2tnetwork to single-cell database
 #'
-#' This initialize scdb_flow to an already initialed scdb. This will extend the db with mctnetwork objects
+#' @param net_id - id of mc2tnetwork
+#' @param mct - mc2tnetwork object
+#' @param scdb_dir - directory of single-cell database
 #' 
-#'
-#' @examples
-#' \dontrun{
-#' # we first initialize a db object
-#' scdb_flow_init()
-#  # we can see which objects are available
-#' net = scdb_mctnetwork("mynet")
-#' }
-#'
-#' @export
-scdb_flow_init = function()
-{
-	if(!exists(".scdb")) {
-		stop("first initialized scdb using scdb_init")
-	}
-	base_dir = .scdb_base
-	.scdb[["mctnetwork"]] <<- list()
-	.scdb[["mctnetflow"]] <<- list()
+#' @export 
+#'  
+scdb_add_mc2tnetwork = function(mct,net_id,scdb_dir) {
+
+    fn = sprintf("%s/mc2tnetwork.%s.tsv",scdb_dir,net_id)
+    saveRDS(object = mct,file = fn)
 }
 
-#' scdb_mctnetwork - get a mctnetwork object
+
+
+#' get mc2tnetwork object
 #'
-#' @param id - id of mctnetwork
-#'
-#' @export
-#'
-scdb_mctnetwork = function(id) 
-{
-	return(metacell:::.scdb_get_obj(id, "mctnetwork"))
+#' @param net_id - id of mc2tnetwork
+#' @param scdb_dir - directory of single-cell database
+#' 
+#' @export 
+#'  
+scdb_mc2tnetwork = function(net_id,scdb_dir) {
+
+    fn = sprintf("%s/mc2tnetwork.%s.tsv",scdb_dir,net_id)
+    mct = readRDS(file = fn)
+	return(mct)
 }
 
-#' scdb_add_mctnetwork - add mctnetwork to the DB and cahce
+
+#' Add mc2tnetflow to single-cell database
 #'
-#' @param id - id of mctnetwork
-#' @param mctnetwork - mctnetwork data frame
-#'
-#' @export
-#'
-scdb_add_mctnetwork = function(id, mctnetwork) 
-{
-	if(class(mctnetwork)[1] != "tgMCTNetwork") {
-		stop("Cannot add non tgMCTNetwork object as a mctnetwork in scdb")
-	}
-	metacell:::.scdb_add_obj(id, "mctnetwork", mctnetwork);
+#' @param flow_id - id of mc2tnetflow
+#' @param mcf - mc2tnetflow object
+#' @param scdb_dir - directory of single-cell database
+#' 
+#' @export 
+#'  
+scdb_add_mc2tnetflow = function(mcf,flow_id,scdb_dir) {
+
+    fn = sprintf("%s/mc2tnetflow.%s.tsv",scdb_dir,flow_id)
+    saveRDS(object = mcf,file = fn)
 }
 
-#' scdb_del_mctnetwork - del mctnetwork from the DB and cahce
+
+
+#' get mc2tnetflow object
 #'
-#' @param id - id of mctnetwork
-#'
-#' @export
-scdb_del_mctnetwork = function(id)
-{
-	metacell:::.scdb_del_obj(id, "mctnetwork");
+#' @param flow_id - id of mc2tnetflow
+#' @param scdb_dir - directory of single-cell database
+#' 
+#' @export 
+#'  
+scdb_mc2tnetflow = function(flow_id,scdb_dir) {
+
+    fn = sprintf("%s/mc2tnetflow.%s.tsv",scdb_dir,flow_id)
+    mcf = readRDS(file = fn)
+	return(mcf)
 }
 
-#' scdb_mctnetflow - get a mctnetflow object
+
+
+#' Add mgraph to single-cell database
 #'
-#' @param id - id of mctnetflow
-#'
-#' @export
-#'
-scdb_mctnetflow = function(id) 
-{
-	return(metacell:::.scdb_get_obj(id, "mctnetflow"))
+#' @param mgraph_id - id of mgraph
+#' @param mgraph - mgraph object
+#' @param scdb_dir - directory of single-cell database
+#' 
+#' @export 
+#'  
+scdb_add_mgraph2 = function(mgraph,mgraph_id,scdb_dir) {
+
+    fn = sprintf("%s/mgraph2.%s.tsv",scdb_dir,mgraph_id)
+    write.table(x = mgraph,file = fn,sep ='\t')
+
 }
 
-#' scdb_add_mctnetflow - add mctnetflow to the DB and cahce
-#'
-#' @param id - id of mctnetflow
-#' @param mctnetflow - mctnetflow data frame
-#'
-#' @export
-#'
-scdb_add_mctnetflow = function(id, mctnetflow) 
-{
-	if(class(mctnetflow)[1] != "tgMCTNetFlow") {
-		stop("Cannot add non tgMCTNetwork object as a mctnetflow in scdb")
-	}
-	metacell:::.scdb_add_obj(id, "mctnetflow", mctnetflow);
-}
 
-#' scdb_del_mctnetflow - del mctnetflow from the DB and cahce
+#' Get mgraph from single-cell database
 #'
-#' @param id - id of mctnetflow
-#'
-#' @export
-scdb_del_mctnetflow = function(id)
-{
-	metacell:::.scdb_del_obj(id, "mctnetflow");
+#' @param mgraph_id - id of mgraph
+#' @param scdb_dir - directory of single-cell database
+#' 
+#' @export 
+#'  
+scdb_mgraph2 = function(mgraph,mgraph_id,scdb_dir) {
+
+    fn = sprintf("%s/mgraph2.%s.tsv",scdb_dir,mgraph_id)
+    mgraph = read.table(x = mgraph,file = fn,sep ='\t',h = T)
+	return(mgraph)
 }

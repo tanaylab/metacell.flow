@@ -7,8 +7,10 @@
 mcell_new_mctnetflow(
   flow_id,
   net_id,
+  scdb_dir,
   init_mincost = F,
   flow_tolerance = 0.01,
+  max_flow_tolerance = 0.05,
   flows = NULL
 )
 }

@@ -5,7 +5,7 @@
 \title{Compute mincost flow and update the mct objects with flows and 
 inferred mc capacity per time}
 \usage{
-mctnetflow_gen_mincost(mcf, flow_tolerance = 0.01)
+mctnetflow_gen_mincost(mcf, flow_tolerance = 0.01, max_flow_tolerance = 0.05)
 }
 \arguments{
 \item{mcf}{flow object}

@@ -4,10 +4,10 @@
 \alias{initialize,tgMCTNetFlow-method}
 \title{Construct a flow object given an mctnetwork}
 \usage{
-\S4method{initialize}{tgMCTNetFlow}(.Object, net_id, flows = NULL)
+\S4method{initialize}{tgMCTNetFlow}(.Object, mct, flows = NULL)
 }
 \arguments{
-\item{net_id}{metacell object id}
+\item{mct}{mc2tnetwork object}
 
 \item{flow}{named vector flows on each net edge (name is edge ID)}
 }

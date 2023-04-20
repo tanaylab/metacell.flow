@@ -2,19 +2,13 @@
 % Please edit documentation in R/mctnetwork.r
 \name{initialize,tgMCTNetwork-method}
 \alias{initialize,tgMCTNetwork-method}
-\title{Construct a meta cell time network}
+\title{Construct a metacell time network}
 \usage{
-\S4method{initialize}{tgMCTNetwork}(.Object, mc_id, mgraph_id, cell_time)
+\S4method{initialize}{tgMCTNetwork}(.Object, mc_t, temporal_bin_time = NULL, metacell_names = NULL)
 }
 \arguments{
-\item{mc_id}{metacell object id}
-
-\item{mgraph_id}{metacell graph object id}
-
-\item{cell_time}{vector assigning a time (number) to each cell}
-
-\item{mc_prolif}{factor per mc}
+\item{mc_t}{distribution of metacells (rows) over time points (cols)}
 }
 \description{
-Construct a meta cell time network
+Construct a metacell time network
 }
