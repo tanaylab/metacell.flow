@@ -4,10 +4,18 @@
 \alias{mctnetflow_get_type_flows}
 \title{Compute matrix of flows over cell types}
 \usage{
-mctnetflow_get_type_flows(mcf, time, max_time)
+mctnetflow_get_type_flows(
+  mcf,
+  df_mc_type,
+  time = NULL,
+  max_time = NULL,
+  included_types = NULL
+)
 }
 \arguments{
 \item{mcf}{mcf network object}
+
+\item{df_mc_type}{data.frame with column mc and column type}
 
 \item{max_time}{maximum time point}
 

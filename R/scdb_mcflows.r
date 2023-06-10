@@ -8,7 +8,7 @@
 #'  
 scdb_add_mc2tnetwork = function(mct,net_id,scdb_dir) {
 
-    fn = sprintf("%s/mc2tnetwork.%s.tsv",scdb_dir,net_id)
+    fn = sprintf("%s/mc2tnetwork.%s.rds",scdb_dir,net_id)
     saveRDS(object = mct,file = fn)
 }
 
@@ -23,7 +23,7 @@ scdb_add_mc2tnetwork = function(mct,net_id,scdb_dir) {
 #'  
 scdb_mc2tnetwork = function(net_id,scdb_dir) {
 
-    fn = sprintf("%s/mc2tnetwork.%s.tsv",scdb_dir,net_id)
+    fn = sprintf("%s/mc2tnetwork.%s.rds",scdb_dir,net_id)
     mct = readRDS(file = fn)
 	return(mct)
 }
@@ -39,7 +39,7 @@ scdb_mc2tnetwork = function(net_id,scdb_dir) {
 #'  
 scdb_add_mc2tnetflow = function(mcf,flow_id,scdb_dir) {
 
-    fn = sprintf("%s/mc2tnetflow.%s.tsv",scdb_dir,flow_id)
+    fn = sprintf("%s/mc2tnetflow.%s.rds",scdb_dir,flow_id)
     saveRDS(object = mcf,file = fn)
 }
 
@@ -54,7 +54,7 @@ scdb_add_mc2tnetflow = function(mcf,flow_id,scdb_dir) {
 #'  
 scdb_mc2tnetflow = function(flow_id,scdb_dir) {
 
-    fn = sprintf("%s/mc2tnetflow.%s.tsv",scdb_dir,flow_id)
+    fn = sprintf("%s/mc2tnetflow.%s.rds",scdb_dir,flow_id)
     mcf = readRDS(file = fn)
 	return(mcf)
 }
@@ -84,9 +84,9 @@ scdb_add_mgraph2 = function(mgraph,mgraph_id,scdb_dir) {
 #' 
 #' @export 
 #'  
-scdb_mgraph2 = function(mgraph,mgraph_id,scdb_dir) {
+scdb_mgraph2 = function(mgraph_id,scdb_dir) {
 
     fn = sprintf("%s/mgraph2.%s.tsv",scdb_dir,mgraph_id)
-    mgraph = read.table(x = mgraph,file = fn,sep ='\t',h = T)
+    mgraph = read.table(file = fn,sep ='\t',h = T)
 	return(mgraph)
 }

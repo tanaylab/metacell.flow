@@ -16,6 +16,7 @@ tgMCTNetwork <- setClass(
    "tgMCTNetwork",
 	slots = c(
 	  mc_t = "matrix",
+	  mc_t_raw = "matrix",
 	  mc_manif_cost = "data.frame",
 	  mc_t_expansion_rate = 'matrix',
 	  temporal_bin_time = 'data.frame',
@@ -28,12 +29,11 @@ tgMCTNetwork <- setClass(
 #'
 #' @param mc_t distribution of metacells (rows) over time points (cols)
 #' @export
-
 setMethod(
   "initialize",
   signature = "tgMCTNetwork",
   definition =
-    function(.Object, mc_t,temporal_bin_time = NULL,metacell_names = NULL) {
+    function(.Object, mc_t,mc_t_raw,temporal_bin_time = NULL,metacell_names = NULL) {
 
 		if(is.null(metacell_names)) {
 			if(is.null(rownames(mc_t))) {
@@ -46,10 +46,16 @@ setMethod(
 		if(is.table(mc_t)) {
 			mc_t = matrix(mc_t, ncol=ncol(mc_t),nrow =nrow(mc_t),dimnames = list(rownames(mc_t),colnames(mc_t)))
 		}
+		if(is.table(mc_t_raw)) {
+			mc_t_raw = matrix(mc_t_raw, ncol=ncol(mc_t_raw),nrow =nrow(mc_t_raw),dimnames = list(rownames(mc_t_raw),colnames(mc_t_raw)))
+		}
+
+
 		mc_t = mc_t[metacell_names,]
 		mc_t = t(t(mc_t)/colSums(mc_t))
 
 		.Object@mc_t = as.matrix(mc_t)
+		.Object@mc_t_raw = as.matrix(mc_t_raw[metacell_names,])
 
 		if(is.null(temporal_bin_time)) {
 			temporal_bin_time = data.frame(bin = c(1:ncol(mc_t)),t = as.double(c(1:ncol(mc_t))))
@@ -66,16 +72,17 @@ setMethod(
 #' This constructs a metacell time network object with mc_t entry and metacell_names and temporal_bin_time_entry 
 #'
 #' @param mc_t matrix distribution of metacells (rows) over time points (cols)
+#' @param mc_t_raw matrix containing number of cells per metacell (rows) over time points (cols), not normalized
 #' @param temporal_bin_time data.frame with columns bin and t giving for each temporal bin its actual time
 #' @param metacell_names vector with metacell names corresponding to rownames of mc_t
 #' 
 #' @export
-
-mc2_new_mctnetwork = function(mc_t,temporal_bin_time = NULL,metacell_names = NULL)
+mc2_new_mctnetwork = function(mc_t,mc_t_raw,temporal_bin_time = NULL,metacell_names = NULL)
 {
-	mct = tgMCTNetwork(mc_t,temporal_bin_time = temporal_bin_time,metacell_names = metacell_names)
+	mct = tgMCTNetwork(mc_t,mc_t_raw,temporal_bin_time = temporal_bin_time,metacell_names = metacell_names)
 	return(mct)
 }
+
 
 #' Construct and initialize a mct time network from a graph and leak table
 #'
@@ -94,16 +101,16 @@ mc2_new_mctnetwork = function(mc_t,temporal_bin_time = NULL,metacell_names = NUL
 
 mctnetwork_from_mgraph_and_mc_proliferation_rate = function(mgraph,
 								    					  mc_t,
+														  mc_t_raw,
 														  mc_proliferation_rate = NULL,
 														  temporal_bin_time = NULL,
 														  t_exp = 1,
 														  T_cost = 1e+5,
-														  metacell_names = NULL)
-{	
+														  metacell_names = NULL) {	
 	
 
 	#build an empty mct object
-	mct = mc2_new_mctnetwork(mc_t,temporal_bin_time = temporal_bin_time,metacell_names = metacell_names)
+	mct = mc2_new_mctnetwork(mc_t,mc_t_raw,temporal_bin_time = temporal_bin_time,metacell_names = metacell_names)
 
 	#initialize manifold costs
 	mct = mctnetwork_comp_manifold_costs_from_mgraph(mct,
@@ -183,7 +190,7 @@ mctnetwork_comp_manifold_costs_from_mgraph = function(mct,mgraph, t_exp = 1, T_c
   #trans_mat = as.matrix(trans_mat)
   trans_mat = trans_mat/apply(trans_mat,1,max)
 
-#  diag(trans_mat) = rowMaxs(trans_mat)
+  #diag(trans_mat) = rowMaxs(trans_mat)
 
   cost_mat = round(10/trans_mat)
   cost_mat = as.matrix(cost_mat)
@@ -373,7 +380,7 @@ mctnetwork_calculate_relative_growth_rates_from_mc_expansion_rate = function(mc_
   t_diff = diff(temporal_bin_time$t)
   prolif_rate = exp(outer(mc_expansion_rate - mean_rate,t_diff)*log(2))
   
-  mean_expansion_rate = colSums(mc_t_freq[,-ncol(mct@mc_t),drop = F] * prolif_rate) 
+  mean_expansion_rate = colSums(mc_t_freq[,-ncol(mc_t_freq),drop = F] * prolif_rate) 
   
   prolif_rate = t(t(prolif_rate)/mean_expansion_rate)
   
@@ -387,7 +394,6 @@ mctnetwork_calculate_relative_growth_rates_from_mc_expansion_rate = function(mc_
 #' 
 #' @return renormalized mc_t_expansion_rate
 #' @export
-
 mctnetwork_renormalize_mc_expansion_rates = function(mc_t_expansion_rate,mc_t_freq) {
 
 	common_rownames = intersect(rownames(mc_t_expansion_rate),rownames(mc_t_freq))

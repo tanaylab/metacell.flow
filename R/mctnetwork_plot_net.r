@@ -106,7 +106,7 @@ mctnetwork_plot_net_new = function(mct,
   
     #add growth mc
     
-    net$edge_color = ifelse(net$type1 == "sink",mc_color[net$mc2],mc_color[net$mc1])
+    net$edge_color = ifelse(net$type1 == "sink",mc_color[as.character(net$mc2)],mc_color[as.character(net$mc1)])
     
     if(plot_over_flow) {
         
@@ -118,7 +118,7 @@ mctnetwork_plot_net_new = function(mct,
         reg = 1e-3
         mc_relative_deviation = (mc_t_infer - mct@mc_t)/(mct@mc_t + reg)
 
-        df_dev = mc_relative_deviation %>% as.data.frame %>% rownames_to_column(var = 'mc1') %>% pivot_longer(cols = !mc1,names_to = "time1",values_to = "mc_dev")
+        df_dev = mc_relative_deviation %>% as.data.frame %>% tibble::rownames_to_column(var = 'mc1') %>% tidyr::pivot_longer(cols = !mc1,names_to = "time1",values_to = "mc_dev")
         df_dev$time1 = as.double(df_dev$time1)
         
         f_cap = net$mc1 == net$mc2 & net$time1 == net$time2
@@ -152,7 +152,8 @@ mctnetwork_plot_net_new = function(mct,
 
     f_cap = nn$mc1 == nn$mc2 & nn$time1 == nn$time2
 
-    plot(c(x1[f_cap],x2[f_cap],c(-1)), c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, col=c(mc_color[c(nn$mc1[f_cap],nn$mc2[f_cap])],"gray"),cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
+    plot(x = c(x1[f_cap],x2[f_cap],c(-1)), y = c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, 
+         col=c(mc_color[c(nn$mc1[f_cap],nn$mc2[f_cap])],"gray"),cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
 
     #plot(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=mc_cex)
 

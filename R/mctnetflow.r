@@ -49,28 +49,6 @@ setMethod(
     }
 )
 
-#' Generate a new flow object in scdb
-#'
-#' This constructs a flow object and put in the flow scdb. Flow themselves are NULL by default, use gen_mincost to compute them.
-#'
-#' @param flow_id id of scdb network object ot be added
-#' @param net_id id of scdb mc time network object 
-#' @param init_mincost TRUE if you want to compute flows using the mincost algorith
-#' @param flows flows per network edge (NULL by default, if not NULL it will supress the init_mincost flag)
-#' @export
-mcell_new_mctnetflow_old = function(flow_id, net_id,scdb_dir,
-							init_mincost = F, flow_tolerance=0.01,
-							max_flow_tolerance = 0.05,
-							flows=NULL)
-{
-	mcf = tgMCTNetFlow(net_id, flows = flows)
-	if(is.null(flows) & init_mincost) {
-		mcf = mctnetflow_gen_mincost(mcf, flow_tolerance,max_flow_tolerance)
-	}
-	scdb_add_mc2tnetflow(mcf = mcf,flow_id = flow_id,scdb_dir = scdb_dir)
-}
-
-
 
 generate_piecewise_linear_mosek_problem = function(mct,
                                                    mc_t_sd = NULL,
@@ -78,7 +56,6 @@ generate_piecewise_linear_mosek_problem = function(mct,
                                                    min_total_flow = 0.95,
                                                    lambda = 1,
                                                    mu = 1,
-                                                   total_flow_scaling = 1,
                                                    sd_over_mean_upper_threshold = 4,
                                                    sd_over_mean_lower_threshold = 0.0125,
                                                    time_bin_capacity_cost_to_zero = NULL) {
@@ -94,8 +71,8 @@ generate_piecewise_linear_mosek_problem = function(mct,
     # linear constraints of the network
 
     cmp_constraints = mctnetwork_linear_constraints(mct = mct,
-                                                       total_flow = total_flow*total_flow_scaling,
-                                                       min_total_flow = min_total_flow*total_flow_scaling)
+                                                       total_flow = total_flow,
+                                                       min_total_flow = min_total_flow)
 
     linear_constraints = cmp_constraints$constraints
     mct  = cmp_constraints$mct
@@ -147,7 +124,7 @@ generate_piecewise_linear_mosek_problem = function(mct,
 
 
 
-    n_edges_discrete = 50
+    n_edges_discrete = 8    
     
     upper_fold_max = 8
 
@@ -172,7 +149,7 @@ generate_piecewise_linear_mosek_problem = function(mct,
         #y1 = exp(lambda*(x -1)) - lambda*x + lambda - 1
         
         y1 = lambda*exp(lambda*(x-1)) - lambda
-
+		y1 = pmin(y1,max_cost)
         y2 = 0.5*(lambda^2)*(-1/(x^2) + 1 )
         y2[!is.finite(y2)] = -max_cost
 
@@ -271,37 +248,8 @@ generate_piecewise_linear_mosek_problem = function(mct,
     return(list(mosek_problem = prob,mct = mct))
 }
 
-#' Compute network flow solutions for different values of mu and where one time bin is left out
-#' The output is a list where each element is the return value of the function solve_piecewise_linear_mosek_network for the different input parameter values of mu and time_bin_out
-#'
-#'
-#' @param df_cv_parameter data.frame with column mu and column time_bin_out
-#' @param mct mct object that is the output 
-#' @param mc_t_sd optional 
-#' 
-#' @return list where each element is the return value of the function solve_piecewise_linear_mosek_network for the different input parameter values of mu and time_bin_out
-#' @export
-#' 
-cmp_leave_one_time_bin_out_cross_validation = function(df_cv_parameter,mct,mc_t_sd = NULL) {
 
-	input_parameter_list = lapply(1:nrow(df_cv_parameter),function(i) {
-		v = c("time_bin_out" = df_cv_parameter$time_bin_out[i],"mu" = df_cv_parameter$mu[i])
-		return(v)
-	})
-	names(input_parameter_list) = c(1:nrow(df_cv_parameter))
 
-	cmp_list = parallel::mclapply(input_parameter_list,function(input_parameter) {
-
-		    cmp_out = solve_piecewise_linear_mosek_network(mct = mct,
-														   mc_t_sd = mc_t_sd,
-														   mu = as.numeric(input_parameter["mu"]),
-														   time_bin_capacity_cost_to_zero = as.integer(input_parameter["time_bin_out"]))
-														   
-
-			return(cmp_out)
-	})
-	return(list(df_cv_parameter = df_cv_parameter,cmp_list = cmp_list))
-}
 
 
 
@@ -311,7 +259,6 @@ solve_piecewise_linear_mosek_network = function(mct,
                                                 lambda = 1,
                                                 total_flow = 0.99,
                                                 min_total_flow = 0.95,
-                                                total_flow_scaling = 1,
                                                 sd_over_mean_lower_threshold = 0.0125,
                                                 sd_over_mean_upper_threshold = 4,
                                                 time_bin_capacity_cost_to_zero = NULL) {
@@ -322,21 +269,20 @@ solve_piecewise_linear_mosek_network = function(mct,
                                                                          lambda = lambda,
                                                                          total_flow = total_flow,
                                                                          min_total_flow = min_total_flow,
-                                                                         total_flow_scaling = total_flow_scaling,
                                                                          time_bin_capacity_cost_to_zero = time_bin_capacity_cost_to_zero,
                                                                          sd_over_mean_lower_threshold = sd_over_mean_lower_threshold,
                                                                          sd_over_mean_upper_threshold = sd_over_mean_upper_threshold)
     
     mct = cmp_piecewise_linear_mosek$mct
-    mosek_sol <- mosek(cmp_piecewise_linear_mosek$mosek_problem)
+    mosek_sol <- Rmosek::mosek(cmp_piecewise_linear_mosek$mosek_problem)
     
     if( mosek_sol$sol$itr$solsta != 'OPTIMAL') {
-      warning('Solution status not optimal: ',mosek_sol$sol$itr$solsta)  
+      warning('Solution status not optimal: ',mosek_sol$sol$itr$solsta)
+      solved_edge_flows = rep(0,nrow(mct@network))
+    } else {
+      solved_edge_flows = mosek_sol$sol$itr$xx[1:nrow(mct@network)]
     }
 
-    solved_edge_flows = mosek_sol$sol$itr$xx[1:nrow(mct@network)]
-
-    total_flow = total_flow_scaling*0.99
     
     if(0) {
         net = mct@network
@@ -357,16 +303,15 @@ solve_piecewise_linear_mosek_network = function(mct,
         mct@network = net
     }
 
-
     net = mct@network
     mcf = tgMCTNetFlow(mct, flows = NULL)
-    mcf@edge_flows = solved_edge_flows*net$flow_scaling[order(net$ID)]/total_flow_scaling
+    mcf@edge_flows = solved_edge_flows*net$flow_scaling[order(net$ID)]
 
-    net$flow = solved_edge_flows[net$ID]*net$flow_scaling/total_flow_scaling
+    net$flow = solved_edge_flows[net$ID]*net$flow_scaling
     f_cap = net$mc1 == net$mc2 & net$time1 == net$time2
     net_cap = net[f_cap,]
 
-    mc_time_weight = summarize(group_by(net_cap,mc1,time1),tot_weight = sum(flow))
+    mc_time_weight = dplyr::summarize(dplyr::group_by(net_cap,mc1,time1),tot_weight = sum(flow))
 
 	mc_index = seq_along(mct@metacell_names)
 	names(mc_index) = mct@metacell_names
@@ -380,61 +325,12 @@ solve_piecewise_linear_mosek_network = function(mct,
     
     mcf@mc_t_infer = mc_t_post
 
-    return(list(mcf = mcf,mct = mct,mosek_solution_status = mosek_sol$sol$itr$solsta))
+    return(list(mcf = mcf,mct = mct,mosek_solution_status = mosek_sol$sol$itr$solsta,mosek_output = mosek_sol))
 }
 
 
 
 
-
-
-
-
-
-
-
-#' Old - not updated to mc2 and convex flow version. Compute mincost flow and update the mct objects with flows and 
-#' inferred mc capacity per time 
-#'
-#' @param mcf flow object
-#' @param flow_tolerance how much flow we should miss per time
-#'
-#' @return an updated flow object
-#' @export
-mctnetflow_gen_mincost_old = function(mcf, flow_tolerance=0.01,max_flow_tolerance = 0.05)
-{
-	if (max_flow_tolerance < flow_tolerance | max_flow_tolerance >= 1) {
-	  stop("max_flow_tolerance must be larger than flow_tolerance (and smaller than 1)")
-	}
-  mctnet = scdb_mc2tnetwork(mcf@net_id)
-	net = mctnet@network
-	ncnstr = mctnetwork_lp_constraints(mctnet, 1-flow_tolerance, 100,1 - max_flow_tolerance)
-
-	edge_costs = net$cost[order(net$ID)]
-	sol = lpsymphony::lpsymphony_solve_LP(obj = edge_costs,
-										mat = ncnstr$lhs, 
-										rhs = ncnstr$rhs, 
-										dir = ncnstr$dir)
-  
-	flows = sol$solution
-	mcf@edge_flows = flows[net$ID]
-	names(mcf@edge_flows) = net$ID	
-
-	net$flow = flows[net$ID]
-	f_cap = net$mc1 == net$mc2 & net$time1 == net$time2
-	net_cap = net[f_cap,]
-
-	mc_time_weight = summarize(group_by(net_cap,mc1,time1),tot_weight = sum(flow))
-	mc_t_post = sparseMatrix(i = as.numeric(mc_time_weight$mc1),
-									j = as.numeric(mc_time_weight$time1), 
-									x = mc_time_weight$tot_weight)
-	mc_t_post = as.matrix(mc_t_post)
-	rownames(mc_t_post) = c(1:nrow(mc_t_post))
-	colnames(mc_t_post) = c(1:ncol(mc_t_post))
-
-	mcf@mc_t_infer = mc_t_post
-	return(mcf)
-}
 
 
 #' Compute matrices for forward and backwrd propagation using the flows
@@ -444,10 +340,9 @@ mctnetflow_gen_mincost_old = function(mcf, flow_tolerance=0.01,max_flow_toleranc
 #' @return an updated mcf object
 #' @export
 
-mctnetflow_comp_propagation= function(mcf)
-{
+mctnetflow_comp_propagation= function(mcf) {
 	mctnet = mcf@mct
-#flows mc,mc,t
+	#flows mc,mc,t
 	max_t = ncol(mctnet@mc_t)
 	for(t in 1:(max_t-1)) {
 		mc_flows = mctnetflow_get_flow_mat(mcf, mctnet, t)
@@ -472,8 +367,7 @@ mctnetflow_comp_propagation= function(mcf)
 #' @return a matrix on metacells
 #' @export
 
-mctnetflow_get_flow_mat = function(mcf, mctnet, time)
-{
+mctnetflow_get_flow_mat = function(mcf, mctnet, time) {
 	net = mctnet@network
 	if(time == -1) {
 		f_t = net$type1 == "norm_f" & net$type2 == "norm_b"
@@ -484,10 +378,10 @@ mctnetflow_get_flow_mat = function(mcf, mctnet, time)
 
 	net$flow  = mcf@edge_flows[net$ID]
 	net_t = net[f_t,] 
-   	flow = as.data.frame(summarize(group_by(net_t, mc1, mc2),
+   	flow = as.data.frame(dplyr::summarize(dplyr::group_by(net_t, mc1, mc2),
 													tot_flow = sum(flow)))
     
-   	mc_mat = pivot_wider(data = flow, 
+   	mc_mat = tidyr::pivot_wider(data = flow, 
 				names_from = mc2, 
 				values_from = tot_flow,
 				values_fill = list(tot_flow = 0))
@@ -496,7 +390,7 @@ mctnetflow_get_flow_mat = function(mcf, mctnet, time)
    	rownames(mc_mat) = mc_mat$mc1
    	mc_mat = mc_mat[,-1]
 
-   	mc_mat = mc_mat[mct@metacell_names,mct@metacell_names]	
+   	mc_mat = mc_mat[mctnet@metacell_names,mctnet@metacell_names]	
    	mc_mat = as.matrix(mc_mat)
 
 	return(mc_mat)
@@ -511,7 +405,7 @@ mctnetflow_get_flow_mat = function(mcf, mctnet, time)
 #' @return a list with two elements: probs is a matrix of probabilities over metacells (rows)  and time (columns). step_m is a list of sparse matrices inferred flows between metacells per time.
 #' @export
 
-mctnetflow_propogate_from_t = function(mcf, t, mc_p)
+mctnetflow_propagate_from_t = function(mcf, t, mc_p)
 {
 	mctnet = scdb_mc2tnetwork(mcf@net_id)
 	max_t = ncol(mctnet@mc_t)
@@ -534,94 +428,6 @@ mctnetflow_propogate_from_t = function(mcf, t, mc_p)
 	return(list(probs=probs, step_m=step_m))
 }
 
-#' Given a list of genes and a matrix, this compute mean umi per metacell (rows) and time (column).
-#'
-#' @param mcf_id  flow object id
-#' @param mat_id  umi matrix object
-#' @param genes list of gene names 
-#' @param min_percentile percentile value to use as minimum threshold (this is used to avoid very small values and regularize color scale, default 0.05)
-#'
-#' @return A matrix on metacells and time with mean umi fraction over the gene module
-#' @export
-#'
-mctnetflow_gen_gmod_mc_t_old = function(mcf_id, mat_id,  genes, min_percentile=0.05)
-{
-	mcf = scdb_mc2tnetflow(mcf_id)
-	if(is.null(mcf)) {
-		stop("cannot find mctnet object ", mct_id, " when trying to plot net flows anchors")
-	}
-	mctnet = scdb_mc2tnetwork(mcf@mct_id)
-	mc = scdb_mc(mctnet@mc_id)
-	mat = scdb_mat(mat_id)
-	genes = intersect(genes, rownames(mat@mat))
-	gmod_tot = colSums(mat@mat[genes,names(mc@mc)])/colSums(mat@mat[,names(mc@mc)])
-	gmod_df = data.frame(mc = mc@mc, 
-								t = mctnet@cell_time[names(mc@mc)], 
-								gmod = gmod_tot)
-	mc_time_gmod = summarise(group_by(gmod_df, mc, t), gmod=mean(gmod))
-	mc_t_gmod_m = sparseMatrix(i=mc_time_gmod$mc, 
-									j=mc_time_gmod$t, 
-									x=mc_time_gmod$gmod)
-	mc_t_gmod_m = pmax(mc_t_gmod_m, quantile(mc_time_gmod$gmod, min_percentile))
-	return(mc_t_gmod_m)
-}
-
-#' This generate two large matrices showing expression of genes per metacell ad time point, as well as the expression of the gene in inferred ancestral states given the flow model
-#'
-#' @param mcf_id  mcf network object
-#' @param mat_id  umi matrix object
-#' @param genes list of gene names 
-#'
-#' @return A matrix on metacells and time with mean umi fraction over the gene module
-#' @export
-#'
-mctnetflow_gen_e_gmt_p_old = function(mcf_id, mat_id,  genes)
-{
-	mcf = scdb_mc2tnetflow(mcf_id)
-	if(is.null(mcf)) {
-		stop("cannot find mctnet object ", mct_id, " when trying to plot net flows anchors")
-	}
-	mctnet = scdb_mc2tnetwork(mcf@mct_id)
-	if(is.null(mctnet)) {
-		stop("cannot find mctnet object ", mct_id, " when trying to plot net flows anchors")
-	}
-	mc = scdb_mc(mctnet@mc_id)
-	mat = scdb_mat(mat_id)
-	genes = intersect(genes, rownames(mat@mat))
-
-	max_t = length(mcf@mc_backward) + 1
-
-	csize = colSums(mat@mat)
-	e_gm_t = list()
-	tot_m_t = list()
-	for(t in 1:max_t) {
-		cell_t = intersect(names(mc@mc), names(which(mctnet@cell_time==t)))
-		message("at ", t, " with ", length(cell_t), " cells")
-		mgt = as.matrix(mat@mat[genes, cell_t])
-#		tot_gm = t(tgs_matrix_tapply(mgt, mc@mc[cell_t], sum))
-		tot_gm = t(apply(mgt,1, function(x) tapply(x,mc@mc[cell_t], sum)))
-		tot_c = tapply(csize[cell_t], mc@mc[cell_t], sum)
-		tot_m_t[[t]] = tot_c
-		e_gm_t[[t]] = t(t(tot_gm)/as.vector(tot_c))
-		rownames(e_gm_t[[t]]) = genes
-	}
-	e_gm_t_prev = list()
-	for(t in 2:max_t) {
-		t_mcs = colnames(e_gm_t[[t-1]])
-		t_mcs2= colnames(e_gm_t[[t]])
-		e_gm_t_prev[[t]] = Matrix(e_gm_t[[t-1]] %*% as.matrix(mcf@mc_backward[[t-1]][t_mcs, t_mcs2]), sparse=T)
-	}
-	
-	e_gm_t_prev2 = list()
-	for(t in 3:max_t) {
-	  t_mcs0 = colnames(e_gm_t[[t-2]])
-	  t_mcs = colnames(e_gm_t[[t-1]])
-	  t_mcs2= colnames(e_gm_t[[t]])
-	  e_gm_t_prev2[[t]] = Matrix(e_gm_t[[t-2]] %*% as.matrix(mcf@mc_backward[[t-2]][t_mcs0, t_mcs]) %*% as.matrix(mcf@mc_backward[[t-1]][t_mcs, t_mcs2]), sparse=T)
-	}
-	
-	return(list(e_gm_t = e_gm_t, e_gm_t_prev = e_gm_t_prev, e_gm_t_prev2 = e_gm_t_prev2, tot_m_t = tot_m_t))
-}
 
 #' Compute matrix of flows over cell types
 #'
@@ -684,42 +490,7 @@ mctnetflow_get_type_flows = function(mcf,df_mc_type, time = NULL, max_time = NUL
 	return(mct_mats)
 }
 
-mctnetflow_get_egc_on_cluster_transition_old = function(mcf, min_time, max_time, type1, type2, mc_type=NULL)
-{
-	mctnet = scdb_mc2tnetwork(mcf@mct_id)
-	mc = scdb_mc(mctnet@mc_id)
-	e_gc = mc@e_gc
-	net = mctnet@network
-	net$flow = mcf@edge_flows
 
-	if(is.null(mc_type)) {
-		mc_type = mc@colors
-		names(mc_type) = as.character(1:length(mc_type))
-	}
-
-#	flow_mm = mctnetwork_get_flow_mat(mct, time, max_time=time)
-
-	f_t = net$time1 >= min_time & net$time2 <= max_time &
-					net$time1 == net$time2-1 &
-					net$type1 != "growth" & net$type2!="growth"
-
-	net = net[f_t,]
-	f_types = mc_type[as.numeric(net$mc1)]==type1 & mc_type[as.numeric(net$mc2)]==type2
-
-	net = net[f_types,]
-
-	src_mc_wgt = tapply(net$flow, net$mc1, sum)	
-	targ_mc_wgt = tapply(net$flow, net$mc2, sum)
-	src_mc_wgt_n = as.vector(src_mc_wgt/sum(src_mc_wgt))
-	names(src_mc_wgt_n) = names(src_mc_wgt)
-	targ_mc_wgt_n = as.vector(targ_mc_wgt/sum(targ_mc_wgt))
-	names(targ_mc_wgt_n) = names(targ_mc_wgt)
-
-	src_e_gc = colSums(t(e_gc[,names(src_mc_wgt_n)]) * src_mc_wgt_n)
-	targ_e_gc = colSums(t(e_gc[,names(targ_mc_wgt_n)]) * targ_mc_wgt_n)
-
-	return(data.frame(src = src_e_gc, targ = targ_e_gc, lf = log2(1e-5+targ_e_gc)-log2(1e-5+src_e_gc)))
-}
 
 
 #' Orders metacells by their type and within each type by color
@@ -736,13 +507,132 @@ mctnetflow_get_egc_on_cluster_transition_old = function(mcf, min_time, max_time,
 #' 
 mctnetflow_order_metacells_by_type_and_time = function(mc_metadata,metadata_field_type,metadata_field_time,df_type_rank,included_metacells = NULL) {
 
+    rownames(mc_metadata) = mc_metadata$metacell
 	if(is.null(included_metacells)) {
 		incuded_metacells = rownames(mc_metadata)
 	}
+
 	mc_metadata = left_join(mc_metadata[included_metacells,],df_type_rank,by = metadata_field_type)
 
 	mc_rank = rank(1000*mc_metadata[,"rank"] + mc_metadata[,metadata_field_time])
 	names(mc_rank) = included_metacells
 
 	return(mc_rank)
+}
+
+
+
+
+
+mctnetflow_solve_and_plot_network = function(mgraph,
+                                    mc_t,
+                                    mc_t_raw,
+                                    scdb_dir,
+                                    net_id,
+                                    flow_id,
+                                    fig_dir,
+                                    cell_type_colors,
+                                    df_mc_annotation,
+                                    mu = 1000,
+                                    mc_t_sd = mc_t_sd,
+                                    mc_proliferation_rate = NULL,
+                                    temporal_bin_time = NULL,
+                                    T_cost = 1e+5,
+                                    metacell_names = NULL,
+                                    t_exp = 1
+                                    ) {
+
+    mct = mctnetwork_from_mgraph_and_mc_proliferation_rate( mgraph,
+								    					        mc_t,
+														        mc_t_raw,
+														        mc_proliferation_rate = mc_proliferation_rate,
+														        temporal_bin_time = temporal_bin_time,
+														        t_exp = t_exp,
+														        T_cost = T_cost,
+														        metacell_names = metacell_names)
+    
+    cmp_out = solve_piecewise_linear_mosek_network( mct = mct,
+													mc_t_sd = mc_t_sd,
+													mu = mu)
+
+    
+    mosek_status = cmp_out$mosek_solution_status
+
+    if(mosek_status == 'OPTIMAL') {
+
+        mcf = mctnetflow_comp_propagation(cmp_out$mcf)
+
+        scdb_add_mc2tnetwork(mct = cmp_out$mct,net_id = net_id,scdb_dir = scdb_dir)
+        scdb_add_mc2tnetflow(mcf = cmp_out$mcf,flow_id = net_id,scdb_dir = scdb_dir)
+
+        png_filename = sprintf("%s/%s_barplot_original_and_inferred_cell_type_distribution.png",fig_dir,flow_id)
+        mctnetflow_barplot_cell_type_frequencies_network(mct = cmp_out$mct,mcf = mcf,cell_type_colors = cell_type_colors,df_mc_annotation = df_mc_annotation,png_filename = png_filename)
+
+        cell_type_colors$rank = c(1:nrow(cell_type_colors))
+
+        mc_rank = mctnetflow_order_metacells_by_type_and_time(mc_metadata = df_mc_annotation,
+                                                      metadata_field_type = "cell_type",
+                                                      metadata_field_time = "metacell_time",
+                                                      df_type_rank = select(cell_type_colors,cell_type,rank),
+                                                     included_metacells = metacell_names)
+
+        df_mc_annotation = dplyr::left_join(select(df_mc_annotation,metacell,cell_type),cell_type_colors,by = 'cell_type')
+
+        mc_color = df_mc_annotation$color
+        names(mc_color) = df_mc_annotation$metacell
+
+        flow_plot_filename = sprintf("%s/%s_network_flow_plot.png",fig_dir,flow_id)
+        mctnetwork_plot_net_new(mct = cmp_out$mct,mcf = mcf,flow_thresh = 1e-6,
+                        filename = flow_plot_filename,
+                        mc_rank = mc_rank,
+                        mc_color = mc_color,plot_over_flow = T,edge_w_scale = 1e-3)
+    }
+
+    return(list(cmp_out = cmp_out,mosek_status = mosek_status))
+}
+
+
+#' Creates two barplots of original and inferred cell type frequencies
+#'
+#' @param mct mctnetwork object
+#' @param mcf mctnetflow object
+#' @param df_mc_annotation data.frame with columns metacell and cell_type
+#' @param cell_type_colors data.frame with columns cell_type and color
+#' @param png_filename filename for png image
+#' @param with_original_frequency boolean, if original frequency should also be plotted
+#' @return a named vector containing the rank of each metacell
+#' @export
+#' 
+#' 
+mctnetflow_barplot_cell_type_frequencies_network = function(mct,mcf,df_mc_annotation,cell_type_colors,png_filename = NULL,with_original_frequency = T) {
+
+    df_mc_annotation = as.data.frame(df_mc_annotation)
+    rownames(df_mc_annotation) = df_mc_annotation$metacell
+    
+    mc_t_raw_n = t(t(mc_t_raw)/colSums(mc_t_raw))
+    ct_ag = tgstat::tgs_matrix_tapply(x = t(mc_t_raw_n),index = df_mc_annotation[mc_t_raw_n,"cell_type"],sum)
+
+    ct_ag_inf = tgstat::tgs_matrix_tapply(x = t(mcf@mc_t_infer),index = df_mc_annotation[rownames(mcf@mc_t_infer),"cell_type"],sum)
+    
+    ct_to_col = cell_type_colors$color
+    names(ct_to_col) = cell_type_colors$cell_type
+
+    ct_ag = ct_ag[cell_type_colors$cell_type[cell_type_colors$cell_type %in% rownames(ct_ag)],]
+    ct_ag_inf = ct_ag_inf[cell_type_colors$cell_type[cell_type_colors$cell_type %in% rownames(ct_ag_inf)],]
+
+    if(!is.null(png_filename)) {
+        w = ifelse(with_original_frequency,1000,500)
+        png(png_filename,w = w,h = 500)
+    }
+    if(with_original_frequency) {
+            layout(matrix(1:2,ncol = 2,nrow = 1),widths = c(400,400))
+        barplot(ct_ag,col = ct_to_col[rownames(ct_ag)],main = "Original frequency")
+        barplot(ct_ag_inf,col = ct_to_col[rownames(ct_ag_inf)],main = "Inferred frequency")
+    } else {
+        barplot(ct_ag_inf,col = ct_to_col[rownames(ct_ag_inf)],main = "Inferred frequency")
+    }
+    if(!is.null(png_filename)) {
+        dev.off()
+    }
+
 }

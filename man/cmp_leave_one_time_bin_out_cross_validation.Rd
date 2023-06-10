@@ -8,7 +8,7 @@ The output is a list where each element is the return value of the function solv
 cmp_leave_one_time_bin_out_cross_validation(
   df_cv_parameter,
   mct,
-  mct_t_sd = NULL
+  mc_t_sd = NULL
 )
 }
 \arguments{

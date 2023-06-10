@@ -4,7 +4,7 @@
 \alias{scdb_mgraph2}
 \title{Get mgraph from single-cell database}
 \usage{
-scdb_mgraph2(mgraph, mgraph_id, scdb_dir)
+scdb_mgraph2(mgraph_id, scdb_dir)
 }
 \arguments{
 \item{mgraph_id}{- id of mgraph}
