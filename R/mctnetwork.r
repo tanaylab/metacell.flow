@@ -222,6 +222,7 @@ mctnetwork_generate_network = function(mct)
 
 
 	# calculate normalized growth rates per metacell and time point
+	browser()
 	growth_rates = mctnetwork_renormalize_mc_expansion_rates(mct@mc_t_expansion_rate,mc_t_freq = mct@mc_t)
 	# add a column of 1's for the last time point
 	growth_rates = cbind(growth_rates,rep(1,nrow(growth_rates)))

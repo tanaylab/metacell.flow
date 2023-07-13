@@ -63,7 +63,7 @@ mctnetwork_mc_rank_from_color_ord = function(mct_id, flow_id, colors_ordered = N
 
 mctnetwork_plot_net_new = function(mct,
                                    mcf,
-                                   filename,
+                                   filename = NULL,
                                    mc_color = NULL,
 						           mc_rank = NULL, 
 						           edge_w_scale=5e-4,
@@ -74,7 +74,8 @@ mctnetwork_plot_net_new = function(mct,
 						           dx_back = 0.15,
                                    plot_mc_ids = F,
                                    plot_over_flow = F,
-                                   mc_t_infer = NULL) {
+                                   mc_t_infer = NULL,
+                                   propagate = NULL) {
     
 
   
@@ -147,25 +148,108 @@ mctnetwork_plot_net_new = function(mct,
 
 	nn$mc1 = ifelse(nn$type1 == "src", nn$mc2, nn$mc1)
 
+    if(!is.null(filename)) {
+        png(filename, width = w,height = h)
+    }
 	
-	png(filename, width = w,height = h)
+    if(is.null(propagate)) {
 
-    f_cap = nn$mc1 == nn$mc2 & nn$time1 == nn$time2
+        f_cap = nn$mc1 == nn$mc2 & nn$time1 == nn$time2
 
-    plot(x = c(x1[f_cap],x2[f_cap],c(-1)), y = c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, 
-         col=c(mc_color[c(nn$mc1[f_cap],nn$mc2[f_cap])],"gray"),cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
+        plot(x = c(x1[f_cap],x2[f_cap],c(-1)), y = c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, 
+            col=c(mc_color[c(nn$mc1[f_cap],nn$mc2[f_cap])],"gray"),cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10,xlim = c(0.5,ncol(mct@mc_t)))
 
-    #plot(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=mc_cex)
+        #plot(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=mc_cex)
 
 
-    segments(x0 = x1,x1 = x2,y0 = y1,y1 = y2,col  =  nn$edge_color,lwd = pmin(nn$flow/edge_w_scale, max_lwd))
-    #points(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=1)
-    points(c(x1[f_cap],x2[f_cap],c(-1)), c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, col=c(mc_color[c(nn$mc1[f_cap],nn$mc2[f_cap])],"gray"),cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
+        segments(x0 = x1,x1 = x2,y0 = y1,y1 = y2,col  =  nn$edge_color,lwd = pmin(nn$flow/edge_w_scale, max_lwd))
+        #points(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=1)
+        points(c(x1[f_cap],x2[f_cap],c(-1)), c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, col=c(mc_color[c(nn$mc1[f_cap],nn$mc2[f_cap])],"gray"),cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
 
-	if(plot_mc_ids) {
-				text(x1[f1]-0.2,y1[f1], labels = nn$mc1[f1], cex=1)
-	}	
-	dev.off()
+        if(plot_mc_ids) {
+                    text(x1[f1]-0.2,y1[f1], labels = nn$mc1[f1], cex=1)
+        }
+
+    } else {
+        
+        f_cap = nn$mc1 == nn$mc2 & nn$time1 == nn$time2
+
+        plot(x = c(x1[f_cap],x2[f_cap],c(-1)), y = c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, 
+            col= 'gray80',cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
+
+        #plot(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=mc_cex)
+
+
+        segments(x0 = x1,x1 = x2,y0 = y1,y1 = y2,col  =  'gray80',lwd = pmin(nn$flow/edge_w_scale, max_lwd))
+        #points(c(x1,x2), c(y1,y2), pch=19, col=mc_color[c(nn$mc1,nn$mc2)],cex=1)
+        points(c(x1[f_cap],x2[f_cap],c(-1)), c(y1[f_cap],y2[f_cap],max(y2)/2), pch=19, col= 'gray80',cex=c(pmin(nn$flow[f_cap]/edge_w_scale, max_lwd),1)/10)
+
+
+
+		max_time = length(propagate$step_m)
+		# m1 = as.numeric(nn$mc1) 
+		# m2 = as.numeric(nn$mc2) 
+		# max_m = ncol(propogate[[1]])
+		#prop_flow = rep(0, nrow(nn))
+        
+
+		for(t in 1:max_time) {
+            
+            df_flow = summary(propagate$step_m[[t]])
+            df_flow = df_flow[df_flow$x > flow_thresh,]
+
+            df_flow$mc1 = mct@metacell_names[df_flow$i]
+            df_flow$mc2 = mct@metacell_names[df_flow$j]
+            df_flow$y1 = mc_rank[mct@metacell_names[df_flow$i]]
+            df_flow$y2 = mc_rank[mct@metacell_names[df_flow$j]]
+            df_flow$x1 = rep(t,nrow(df_flow))
+            df_flow$x2 = rep(t +1 - dx_back,nrow(df_flow))
+            
+            # flow through capacity edges
+            f_non_zero = propagate$probs[,t] > flow_thresh
+            df_flow_cap = data.frame(mc1 = mct@metacell_names[f_non_zero],
+                                     mc2 = mct@metacell_names[f_non_zero],
+                                     y1 = mc_rank[mct@metacell_names[f_non_zero]],
+                                     y2 = mc_rank[mct@metacell_names[f_non_zero]],
+                                     x1 = rep(t - dx_back,sum(f_non_zero)),
+                                     x2 = rep(t,sum(f_non_zero)),
+                                     x = propagate$probs[f_non_zero,t])
+            
+            df_flow = rbind(df_flow[,c('mc1','mc2','y1','y2','x1','x2','x')],df_flow_cap)
+
+			#f = (nn$time1 == t) & nn$mc1>0 & nn$mc2>0
+			#prop_flow[f] = propogate[[t]][m1[f]+max_m*(m2[f]-1)]
+            segments(df_flow$x1,df_flow$y1,df_flow$x2,df_flow$y2, 
+				col= mc_color[df_flow$mc1], 
+				lwd=pmin(df_flow$x/edge_w_scale, 10))
+		}
+
+        # plotting the capacity edges of the final time point
+        f_non_zero = propagate$probs[,max_time + 1] > flow_thresh
+        df_flow = data.frame(mc1 = mct@metacell_names[f_non_zero],
+                                     mc2 = mct@metacell_names[f_non_zero],
+                                     y1 = mc_rank[mct@metacell_names[f_non_zero]],
+                                     y2 = mc_rank[mct@metacell_names[f_non_zero]],
+                                     x1 = rep(max_time + 1 - dx_back,sum(f_non_zero)),
+                                     x2 = rep(max_time + 1,sum(f_non_zero)),
+                                     x = propagate$probs[f_non_zero,max_time + 1])
+
+        segments(df_flow$x1,df_flow$y1,df_flow$x2,df_flow$y2, 
+				col= mc_color[df_flow$mc1], 
+				lwd=pmin(df_flow$x/edge_w_scale, 10))
+		#points(c(x1,x2), c(y1,y2), pch=19, col=mc@colors[c(nn$mc1,nn$mc2)],cex=m_cex)
+
+
+    }
+
+    if(!is.null(filename)) {
+        dev.off()
+    }
+	
+
+
+
+
 }
 
 write_flow = function(file_name,mct_id, flow_id, mcnames, flow_thresh = 1e-4){

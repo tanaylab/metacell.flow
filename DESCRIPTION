@@ -11,14 +11,11 @@ Description: Supporting inference of differentiation flow over metacell
 License: MIT
 Imports: 
     cluster,
-    dbscan,
     dplyr,
     ggplot2,
-    graph,
     igraph,
     lpsymphony,
     Matrix,
-    metacell (>= 0.3.6),
     parallel,
     pdist,
     tgconfig,
@@ -27,9 +24,7 @@ Imports:
     tidyr,
     zoo
 Remotes:
-    bioc::graph,
     bioc::lpsymphony,
-    tanaylab/metacell,
     tanaylab/tgconfig,
     tanaylab/tgstat,
     tanaylab/tgutil

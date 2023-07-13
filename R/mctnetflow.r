@@ -41,7 +41,7 @@ setMethod(
 #		.Object@mc_forward = NULL
 #		.Object@mc_backward= NULL
 		if(!is.null(flows)) {
-			if(mct@net$ID != names(flows)) {
+			if(mct@network$ID != names(flows)) {
 				stop("initializing flows must be done with a flow vector over the associated network object edge IDs, current flows IDs are not consistent")
 			}
 		}
@@ -375,22 +375,25 @@ mctnetflow_get_flow_mat = function(mcf, mctnet, time) {
 		f_t = net$time1 == time & net$time2==time+1
 
 	}
-
 	net$flow  = mcf@edge_flows[net$ID]
 	net_t = net[f_t,] 
+    
    	flow = as.data.frame(dplyr::summarize(dplyr::group_by(net_t, mc1, mc2),
 													tot_flow = sum(flow)))
-    
-   	mc_mat = tidyr::pivot_wider(data = flow, 
-				names_from = mc2, 
-				values_from = tot_flow,
-				values_fill = list(tot_flow = 0))
 
-   	mc_mat = as.data.frame(mc_mat)
-   	rownames(mc_mat) = mc_mat$mc1
-   	mc_mat = mc_mat[,-1]
+    df_mc_index = data.frame(mc = mctnet@metacell_names,
+                             mc_ind = seq_along(mctnet@metacell_names))
 
-   	mc_mat = mc_mat[mctnet@metacell_names,mctnet@metacell_names]	
+    flow = dplyr::left_join(flow, rename(df_mc_index,mc1 = mc,mc1_index = mc_ind))
+    flow = dplyr::left_join(flow, rename(df_mc_index,mc2 = mc,mc2_index = mc_ind))
+
+    mc_mat = sparseMatrix(  i = flow$mc1_index,
+							j = flow$mc2_index,
+							x = flow$tot_flow,
+								dims = c(length(mctnet@metacell_names),length(mctnet@metacell_names)),
+								dimnames = list(mctnet@metacell_names,mctnet@metacell_names))
+
+
    	mc_mat = as.matrix(mc_mat)
 
 	return(mc_mat)
@@ -407,11 +410,14 @@ mctnetflow_get_flow_mat = function(mcf, mctnet, time) {
 
 mctnetflow_propagate_from_t = function(mcf, t, mc_p)
 {
-	mctnet = scdb_mc2tnetwork(mcf@net_id)
+	mctnet = mcf@mct    
 	max_t = ncol(mctnet@mc_t)
 	step_m = list()
-	probs = matrix(0, nrow = nrow(mctnet@mc_t), ncol=ncol(mctnet@mc_t))
-	probs[,t] = mc_p
+	probs = matrix(0, nrow = nrow(mctnet@mc_t), ncol=ncol(mctnet@mc_t),dimnames = list(mctnet@metacell_names,colnames(mctnet@mc_t)))
+	
+    probs[names(mc_p),t] = mc_p
+
+
 	if(t > 1) {
 		for(i in (t-1):1) {
 			step_m[[i]] = Matrix(t(t(as.matrix(mcf@mc_backward[[i]])) * probs[,i+1]), sparse=T)
@@ -534,7 +540,7 @@ mctnetflow_solve_and_plot_network = function(mgraph,
                                     cell_type_colors,
                                     df_mc_annotation,
                                     mu = 1000,
-                                    mc_t_sd = mc_t_sd,
+                                    mc_t_sd = NULL,
                                     mc_proliferation_rate = NULL,
                                     temporal_bin_time = NULL,
                                     T_cost = 1e+5,
@@ -561,6 +567,7 @@ mctnetflow_solve_and_plot_network = function(mgraph,
     if(mosek_status == 'OPTIMAL') {
 
         mcf = mctnetflow_comp_propagation(cmp_out$mcf)
+        cmp_out$mcf = mcf
 
         scdb_add_mc2tnetwork(mct = cmp_out$mct,net_id = net_id,scdb_dir = scdb_dir)
         scdb_add_mc2tnetflow(mcf = cmp_out$mcf,flow_id = net_id,scdb_dir = scdb_dir)
@@ -585,7 +592,14 @@ mctnetflow_solve_and_plot_network = function(mgraph,
         mctnetwork_plot_net_new(mct = cmp_out$mct,mcf = mcf,flow_thresh = 1e-6,
                         filename = flow_plot_filename,
                         mc_rank = mc_rank,
+                        mc_color = mc_color,plot_over_flow = F,edge_w_scale = 1e-3)
+
+        flow_plot_filename = sprintf("%s/%s_network_flow_plot_with_overflow.png",fig_dir,flow_id)
+        mctnetwork_plot_net_new(mct = cmp_out$mct,mcf = mcf,flow_thresh = 1e-6,
+                        filename = flow_plot_filename,
+                        mc_rank = mc_rank,
                         mc_color = mc_color,plot_over_flow = T,edge_w_scale = 1e-3)
+
     }
 
     return(list(cmp_out = cmp_out,mosek_status = mosek_status))
@@ -608,9 +622,11 @@ mctnetflow_barplot_cell_type_frequencies_network = function(mct,mcf,df_mc_annota
 
     df_mc_annotation = as.data.frame(df_mc_annotation)
     rownames(df_mc_annotation) = df_mc_annotation$metacell
+
+    mc_t_raw = mct@mc_t_raw
     
     mc_t_raw_n = t(t(mc_t_raw)/colSums(mc_t_raw))
-    ct_ag = tgstat::tgs_matrix_tapply(x = t(mc_t_raw_n),index = df_mc_annotation[mc_t_raw_n,"cell_type"],sum)
+    ct_ag = tgstat::tgs_matrix_tapply(x = t(mc_t_raw_n),index = df_mc_annotation[rownames(mc_t_raw_n),"cell_type"],sum)
 
     ct_ag_inf = tgstat::tgs_matrix_tapply(x = t(mcf@mc_t_infer),index = df_mc_annotation[rownames(mcf@mc_t_infer),"cell_type"],sum)
     

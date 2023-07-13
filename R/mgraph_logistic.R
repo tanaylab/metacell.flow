@@ -104,7 +104,7 @@ mgraph_comp_logist_mc2 = function(mc_gene_mat, feature_genes, loc = 1, scale = 0
                         return(data.frame(mc1 = mc1, mc2=mc2)) })
    ed_df = as.data.frame(do.call(rbind, edges))
 	ed_df$dist = apply(ed_df, 1, function(x) 1+a[x[1],x[2]])
-	return(ed_df)
+	return(list(mgraph = ed_df,logist_dist_raw = a))
 }
 
 
