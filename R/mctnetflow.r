@@ -583,10 +583,10 @@ mctnetflow_solve_and_plot_network = function(mgraph,
                                                       df_type_rank = select(cell_type_colors,cell_type,rank),
                                                      included_metacells = metacell_names)
 
-        df_mc_annotation = dplyr::left_join(select(df_mc_annotation,metacell,cell_type),cell_type_colors,by = 'cell_type')
+        df_mc_annotation = dplyr::left_join(select(df_mc_annotation,metacell_name,cell_type),cell_type_colors,by = 'cell_type')
 
         mc_color = df_mc_annotation$color
-        names(mc_color) = df_mc_annotation$metacell
+        names(mc_color) = df_mc_annotation$metacell_name
 
         flow_plot_filename = sprintf("%s/%s_network_flow_plot.png",fig_dir,flow_id)
         mctnetwork_plot_net_new(mct = cmp_out$mct,mcf = mcf,flow_thresh = 1e-6,
@@ -621,7 +621,7 @@ mctnetflow_solve_and_plot_network = function(mgraph,
 mctnetflow_barplot_cell_type_frequencies_network = function(mct,mcf,df_mc_annotation,cell_type_colors,png_filename = NULL,with_original_frequency = T) {
 
     df_mc_annotation = as.data.frame(df_mc_annotation)
-    rownames(df_mc_annotation) = df_mc_annotation$metacell
+    rownames(df_mc_annotation) = df_mc_annotation$metacell_name
 
     mc_t_raw = mct@mc_t_raw
     
