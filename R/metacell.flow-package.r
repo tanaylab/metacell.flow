@@ -21,6 +21,7 @@
 #' @docType package
 NULL
 
+
 # this is important for running this package from scripts
 #' @import methods
 NULL
