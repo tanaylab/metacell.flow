@@ -6,8 +6,7 @@ Authors@R:
            family = "Tanay",
            role = c("aut", "cre"),
            email = "amos.tanay@weizmann.ac.il")
-Description: Supporting inference of differentiation flow over metacell
-    manifolds (and innovation of additional scRNA buzzwords)
+Description: The goal of metacell.flow is to infer differentiation flow models from single cell RNA-seq data and metacell models representing it, with time tags per cell.
 License: MIT
 Imports: 
     cluster,
